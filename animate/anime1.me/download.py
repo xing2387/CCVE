@@ -21,6 +21,7 @@ headers = {
     'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/78.0.3904.70 Chrome/78.0.3904.70 Safari/537.36'
 }
 
+
 def main(aid):
     # 创建cookiejar对象
     cookiejar = http.cookiejar.CookieJar()  # CookieJar()
@@ -31,6 +32,7 @@ def main(aid):
     # htmlStr = requests.get(animBaseUrl.format(aid=aid)).text
     url = animBaseUrl.format(aid=aid)
     req = urllib.request.Request(url, headers=headers)
+    print("requesting url " + url)
     htmlStr = opener.open(req).read()
     html = etree.HTML(htmlStr)
     chapterUrlList = html.xpath("//iframe/@src")
@@ -43,7 +45,8 @@ def main(aid):
         param = re.findall(r'\s*x.send\(\'(d=.*?)\'\)', chapterStr, re.I)[0]
         param = param.encode('utf-8')
 
-        req = urllib.request.Request('https://v.anime1.me/apiv2', data=param, headers=headers)
+        req = urllib.request.Request(
+            'https://v.anime1.me/apiv2', data=param, headers=headers)
         resp = opener.open(req).read().decode("utf-8")
         urlList = json.loads(resp)['sources']
         tempList = []
@@ -57,24 +60,41 @@ def main(aid):
                 url = "https:" + url
             tempList.append((index, url))
         downloadList.append(tempList)
-    doDownload(aid, downloadList)
-            
+    cookieMap = {}
+    cookieStr = ''
+    for item in cookiejar:
+        cookieMap[item.name]=item.value
+    for key,value in cookieMap.items():
+        cookieStr += 'cookie:'+key+"="+value+"\r\n"
+    # print(cookieStr)
+    # cookieStr = "cookie: " + cookieStr
+    # uu=downloadList[0][0][1]
+    # filename = uu.split('/')[-1]
+    # f = opener.open(uu)
+    # data = f.read()
+    # with open(filename, "wb") as code:
+    #     code.write(data)
+    doDownload(aid, downloadList, opener)
 
-def doDownload(aid, urlLists):
+
+def doDownload(aid, urlLists, opener):
     if not urlLists or len(urlLists) <= 0:
         return
+    index = len(urlLists) + 1
     for urlList in urlLists:
         if not urlList or len(urlList) <= 0:
             continue
+        index -= 1
         tempUrl = None
         height = 0
-        index  = 0
         for u in urlList:
             if not u:
                 continue
             print(u)
             chapterUrl = u[1]
-            index = u[0]
+            if chapterUrl.endswith("mp4"):
+                tempUrl = chapterUrl
+                break
             videoInfo = getVideoInfo(chapterUrl)
             print(videoInfo)
             if not videoInfo or (not videoInfo['height']):
@@ -89,20 +109,31 @@ def doDownload(aid, urlLists):
         tempUrl = None
         videoOutName = '{index}.mp4'.format(index=index)
         if os.path.exists(videoOutName):
-            print("file exist, skip. {file} -> {url} ".format(file=videoOutName, url=url))
+            print(
+                "file exist, skip. {file} -> {url} ".format(file=videoOutName, url=url))
             continue
-        print("downloading video: {file} : {url}".format(file=videoOutName, url=url))
-        ffmpeg.input(url).output(videoOutName).run()
+        print("downloading video: {file} : {url}".format(
+            file=videoOutName, url=url))
+        if url.endswith("mp4"):
+            # filename = url.split('/')[-1]
+            f = opener.open(url)
+            data = f.read()
+            with open(videoOutName, "wb") as code:
+                code.write(data)
+        else:
+            ffmpeg.input(url).output(videoOutName).run()
 
-def getVideoInfo(url):
+
+def getVideoInfo(url, **argw):
     videoStream = {}
     try:
-        probe = ffmpeg.probe(url)
+        probe = ffmpeg.probe(url, **argw)
         videoStream = next(
             (stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
     except Exception as err:
         print(err)
     return videoStream
+
 
 if __name__ == "__main__":
     main(sys.argv[1])
