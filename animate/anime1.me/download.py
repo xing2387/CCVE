@@ -80,11 +80,11 @@ def main(aid):
 def doDownload(aid, urlLists, opener):
     if not urlLists or len(urlLists) <= 0:
         return
-    index = len(urlLists) + 1
+    index = 0
     for urlList in urlLists:
         if not urlList or len(urlList) <= 0:
             continue
-        index -= 1
+        index += 1
         tempUrl = None
         height = 0
         for u in urlList:
@@ -107,15 +107,15 @@ def doDownload(aid, urlLists, opener):
                 height = videoInfo['height']
         url = tempUrl
         tempUrl = None
-        videoOutName = '{index}.mp4'.format(index=index)
-        if os.path.exists(videoOutName):
-            print(
-                "file exist, skip. {file} -> {url} ".format(file=videoOutName, url=url))
-            continue
-        print("downloading video: {file} : {url}".format(
-            file=videoOutName, url=url))
         if url.endswith("mp4"):
-            # filename = url.split('/')[-1]
+            videoOutName = url.split('/')[-1]
+        else:
+            videoOutName = '{index}.mp4'.format(index=index)
+        if os.path.exists(videoOutName):
+            print("file exist, skip. {file} -> {url} ".format(file=videoOutName, url=url))
+            continue
+        print("downloading video: {file} : {url}".format(file=videoOutName, url=url))
+        if url.endswith("mp4"):
             f = opener.open(url)
             data = f.read()
             with open(videoOutName, "wb") as code:
