@@ -1,0 +1,1 @@
+- Gleipnir: https://chap.manganelo.com/manga-lx89691
