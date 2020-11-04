@@ -3,7 +3,8 @@
 
 #lx89691
 _id=$1
-homeUrl="https://chap.manganelo.com/manga-"$_id
+hostName="chap.manganelo.com"
+homeUrl="https://$hostName/manga-"$_id
 
 echo "downloading index html "$homeUrl
 curl -s -o home.html $homeUrl
@@ -35,7 +36,7 @@ for (( i=$(($count-1)); i>=0; i-- )); do
     echo "page count "$picCount
     for (( j=0; j<$picCount; j++ )); do
         echo "downloading pic $(($j + 1))/$picCount "${picUrls[j]}
-        curl -s -o $(($j + 1))".jpg" ${picUrls[j]}
+        curl -H 'referer: https://'$hostName'/' -s -o $(($j + 1))".jpg" ${picUrls[j]}
     done
     cd $lastDir
 done
